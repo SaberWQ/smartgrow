@@ -7417,3 +7417,68 @@ G1:0% G2:0%
 2026-03-11 13:35:13,721 [INFO    ] actuators: ⏹  UV OFF
 2026-03-11 13:35:13,722 [INFO    ] actuators: GPIO cleanup ✓
 2026-03-11 13:35:13,722 [INFO    ] main: 👋 SmartGrow Mini зупинено
+2026-03-11 14:44:59,763 [INFO    ] main: =======================================================
+2026-03-11 14:44:59,772 [INFO    ] main:   🌱 SmartGrow Mini стартує...
+2026-03-11 14:44:59,775 [INFO    ] main:   📅 11.03.2026 14:44
+2026-03-11 14:44:59,776 [INFO    ] main: =======================================================
+2026-03-11 15:05:34,380 [INFO    ] main: =======================================================
+2026-03-11 15:05:34,386 [INFO    ] main:   🌱 SmartGrow Mini стартує...
+2026-03-11 15:05:34,390 [INFO    ] main:   📅 11.03.2026 15:05
+2026-03-11 15:05:34,392 [INFO    ] main: =======================================================
+2026-03-11 15:05:34,561 [WARNING ] actuators: GPIO не знайдено: No module named 'RPi'
+2026-03-11 15:08:58,660 [INFO    ] main: =======================================================
+2026-03-11 15:08:58,731 [INFO    ] main:   🌱 SmartGrow Mini стартує...
+2026-03-11 15:08:58,765 [INFO    ] main:   📅 11.03.2026 15:08
+2026-03-11 15:08:58,766 [INFO    ] main: =======================================================
+2026-03-11 15:08:59,436 [INFO    ] actuators: GPIO ✓
+2026-03-11 15:09:06,269 [INFO    ] main:   ✓ [Sensors]
+2026-03-11 15:09:06,276 [INFO    ] watering: Ґрунт 0% < 40% → запуск поливу
+2026-03-11 15:09:06,276 [INFO    ] main:   ✓ [Watering]
+2026-03-11 15:09:06,277 [INFO    ] actuators: 🚿 Насос ON
+2026-03-11 15:09:06,290 [INFO    ] main:   ✓ [UV]
+2026-03-11 15:09:06,290 [INFO    ] actuators: 💜 UV ON
+2026-03-11 15:09:06,291 [INFO    ] main:   ✓ [OLED]
+2026-03-11 15:09:06,293 [INFO    ] main:   ✓ [IPS]
+2026-03-11 15:09:06,294 [INFO    ] main:   ✓ [Database]
+2026-03-11 15:09:06,295 [INFO    ] main:   ✓ [Alerts]
+2026-03-11 15:09:06,296 [INFO    ] main:   ✓ [Telegram]
+2026-03-11 15:09:06,299 [INFO    ] web: 🌐 Веб-сервер на 0.0.0.0:5000
+2026-03-11 15:09:06,299 [INFO    ] main:   ✓ [Web]
+2026-03-11 15:09:06,303 [INFO    ] main: ✅ Всі потоки запущено
+2026-03-11 15:09:06,379 [INFO    ] database: SQLite DB ✓
+2026-03-11 15:09:06,795 [INFO    ] database: Event [ALERT]: Критично сухий ґрунт!
+G1:0% G2:0%
+2026-03-11 15:09:08,754 [WARNING ] sensors: ADS1115 не знайдено: No I2C device at address: 0x48
+2026-03-11 15:09:08,895 [WARNING ] ips: IPS ST7789 не знайдено: No module named 'spidev'
+2026-03-11 15:09:09,060 [INFO    ] sensors: DHT22 ✓
+2026-03-11 15:09:09,195 [WARNING ] sensors: UPS HAT не знайдено: [Errno 121] Remote I/O error — заряд буде 100%
+2026-03-11 15:09:16,317 [ERROR   ] telegram: run_bot: 'Updater' object has no attribute '_Updater__polling_cleanup_cb' and no __dict__ for setting new attributes
+2026-03-11 15:09:16,440 [INFO    ] actuators: ⏹  Насос OFF
+2026-03-11 15:09:16,441 [INFO    ] watering: Полив завершено
+2026-03-11 15:09:16,526 [INFO    ] httpx: HTTP Request: POST https://api.telegram.org/bot8744408744:AAHGp43TLHFbdalQsQkzdvuYSpKXQqHPh3o/sendMessage "HTTP/1.1 200 OK"
+2026-03-11 15:09:16,582 [WARNING ] alerts: ALERT: Критично сухий ґрунт!
+G1:0% G2:0%
+2026-03-11 15:09:21,442 [INFO    ] watering: Ґрунт 0% < 40% → запуск поливу
+2026-03-11 15:09:21,443 [INFO    ] actuators: 🚿 Насос ON
+2026-03-11 15:09:32,117 [INFO    ] actuators: ⏹  Насос OFF
+2026-03-11 15:09:32,366 [INFO    ] watering: Полив завершено
+2026-03-11 15:09:37,385 [INFO    ] watering: Ґрунт 0% < 40% → запуск поливу
+2026-03-11 15:09:37,413 [INFO    ] actuators: 🚿 Насос ON
+2026-03-11 15:09:47,995 [INFO    ] actuators: ⏹  Насос OFF
+2026-03-11 15:09:48,919 [INFO    ] watering: Полив завершено
+2026-03-11 15:09:53,920 [INFO    ] watering: Ґрунт 0% < 40% → запуск поливу
+2026-03-11 15:09:54,053 [INFO    ] actuators: 🚿 Насос ON
+2026-03-11 15:10:04,638 [INFO    ] actuators: ⏹  Насос OFF
+2026-03-11 15:10:04,832 [INFO    ] watering: Полив завершено
+2026-03-11 15:10:09,834 [INFO    ] watering: Ґрунт 0% < 40% → запуск поливу
+2026-03-11 15:10:09,835 [INFO    ] actuators: 🚿 Насос ON
+2026-03-11 15:10:20,090 [INFO    ] actuators: ⏹  Насос OFF
+2026-03-11 15:10:20,418 [INFO    ] watering: Полив завершено
+2026-03-11 15:10:25,449 [INFO    ] watering: Ґрунт 0% < 40% → запуск поливу
+2026-03-11 15:10:25,450 [INFO    ] actuators: 🚿 Насос ON
+2026-03-11 15:10:27,807 [INFO    ] main: 
+🛑 Зупинка системи...
+2026-03-11 15:10:28,149 [INFO    ] actuators: ⏹  Насос OFF
+2026-03-11 15:10:28,151 [INFO    ] actuators: ⏹  UV OFF
+2026-03-11 15:10:28,152 [INFO    ] actuators: GPIO cleanup ✓
+2026-03-11 15:10:28,153 [INFO    ] main: 👋 SmartGrow Mini зупинено
