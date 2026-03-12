@@ -1,9 +1,6 @@
-"""
-services/alerts.py
-Моніторинг критичних значень і надсилання сповіщень
-"""
+# /home/smartgrow/services/alerts.py
 
-import asyncio, time, logging
+import time, logging
 from config import (ALERT_COOLDOWN_SEC, ALERT_SOIL_CRITICAL,
                     ALERT_TEMP_HIGH, ALERT_TEMP_LOW)
 from services.database import insert_event
@@ -11,38 +8,37 @@ from services.database import insert_event
 log = logging.getLogger("alerts")
 
 
-def alert_loop(state: dict):
-    """Нескінченний цикл перевірки алертів."""
-    last_sent: dict[str, float] = {}
+def alert_loop(state):
+    last = {}
 
-    def _should(key: str) -> bool:
-        return time.time() - last_sent.get(key, 0) > ALERT_COOLDOWN_SEC
+    def ready(key):
+        return time.time() - last.get(key, 0) > ALERT_COOLDOWN_SEC
 
-    def _fire(key: str, msg: str):
-        last_sent[key] = time.time()
+    def fire(key, msg):
+        last[key] = time.time()
         insert_event("ALERT", msg)
-        asyncio.run(_send(msg))
-        log.warning(f"ALERT: {msg}")
-
-    async def _send(msg: str):
-        from services.telegram_bot import send_message
-        await send_message(f"⚠️ *SmartGrow Alert*\n{msg}")
+        log.warning("ALERT: %s", msg)
+        # Надсилаємо через telegram async-safe спосіб
+        try:
+            import asyncio
+            from services.telegram_bot import send_message
+            asyncio.run(send_message(msg))
+        except Exception as e:
+            log.error("alert send: %s", e)
 
     while True:
         try:
             s1, s2 = state["soil1"], state["soil2"]
             temp   = state["temp"]
 
-            if (s1 < ALERT_SOIL_CRITICAL or s2 < ALERT_SOIL_CRITICAL) and _should("dry"):
-                _fire("dry", f"Критично сухий ґрунт!\nG1:{s1}% G2:{s2}%")
-
-            if temp > ALERT_TEMP_HIGH and temp > 0 and _should("hot"):
-                _fire("hot", f"Висока температура: {temp}°C")
-
-            if 0 < temp < ALERT_TEMP_LOW and _should("cold"):
-                _fire("cold", f"Низька температура: {temp}°C")
+            if (s1 < ALERT_SOIL_CRITICAL or s2 < ALERT_SOIL_CRITICAL) and ready("dry"):
+                fire("dry", "Dry soil! G1:%d%% G2:%d%%" % (s1, s2))
+            if temp > ALERT_TEMP_HIGH and temp > 0 and ready("hot"):
+                fire("hot", "High temp: %.1fC" % temp)
+            if 0 < temp < ALERT_TEMP_LOW and ready("cold"):
+                fire("cold", "Low temp: %.1fC" % temp)
 
         except Exception as e:
-            log.error(f"alert_loop: {e}")
+            log.error("alert_loop: %s", e)
 
         time.sleep(60)

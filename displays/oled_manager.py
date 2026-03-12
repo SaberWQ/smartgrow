@@ -1,115 +1,102 @@
-"""
-displays/oled_manager.py
-Керування кількома OLED SSD1306 на одній I2C шині.
+# /home/smartgrow/displays/oled_manager.py
+#
+# Підключення (всі паралельно):
+#   VCC -> 3.3V  |  GND -> GND
+#   SDA -> GPIO2 (Pin 3)
+#   SCL -> GPIO3 (Pin 5)
+#
+# OLED #1 -> 0x3C (нічого не паяти)
+# OLED #2 -> 0x3D (перепаяти A0: GND -> VCC)
+# Перевірити: i2cdetect -y 1
 
-Підключення (всі паралельно):
-  VCC → 3.3V
-  GND → GND
-  SDA → GPIO2  (Pin 3)
-  SCL → GPIO3  (Pin 5)
-
-Адреси:
-  OLED #1 → 0x3C  (за замовчуванням, нічого не паяти)
-  OLED #2 → 0x3D  (перепаяти резистор A0: відключити від GND, підключити до VCC)
-  OLED #3 → потребує TCA9548A або --  за замовчуванням недоступний
-
-Перевірити адреси:  i2cdetect -y 1
-"""
-
-import logging
-import time
+import logging, time
 from datetime import datetime
-from config import OLED_ADDRESSES, OLED_WIDTH, OLED_HEIGHT
 
 log = logging.getLogger("oled")
 
-_displays = []   # список ініціалізованих дисплеїв
+_displays = []
 OLED_OK   = False
 
 
 def init():
-    """Ініціалізує всі OLED дисплеї з адресами з config.py"""
     global _displays, OLED_OK
+    _displays = []
+
+    from config import OLED_WIDTH, OLED_HEIGHT
+
+    # Нормалізуємо адреси — завжди список int, незалежно від формату в config
+    try:
+        from config import OLED_ADDRESSES as _raw
+        if isinstance(_raw, int):
+            addrs = [_raw]
+        elif isinstance(_raw, (list, tuple)):
+            addrs = [int(a) for a in _raw]
+        else:
+            addrs = [0x3C, 0x3D]
+    except Exception:
+        addrs = [0x3C, 0x3D]
+
     try:
         from luma.core.interface.serial import i2c as luma_i2c
         from luma.oled.device import ssd1306
-        from PIL import ImageFont
 
-        for addr in OLED_ADDRESSES:
+        for addr in addrs:
             try:
-                serial  = luma_i2c(port=1, address=addr)
-                display = ssd1306(serial, width=OLED_WIDTH, height=OLED_HEIGHT)
-                _displays.append(display)
-                log.info(f"OLED @ 0x{addr:02X} ✓")
+                serial = luma_i2c(port=1, address=int(addr))
+                device = ssd1306(serial, width=OLED_WIDTH, height=OLED_HEIGHT)
+                _displays.append(device)
+                log.info("OLED 0x%02X OK", addr)
             except Exception as e:
-                log.warning(f"OLED @ 0x{addr:02X} не знайдено: {e}")
+                log.warning("OLED 0x%02X not found: %s", addr, e)
 
         OLED_OK = len(_displays) > 0
 
     except ImportError as e:
-        log.warning(f"luma.oled не встановлено: {e}")
+        log.warning("luma.oled not installed: %s", e)
 
 
-def _draw(display, lines: list[str]):
-    """Малює список рядків на дисплеї."""
+def _draw(device, lines):
     try:
         from luma.core.render import canvas
         from PIL import ImageFont
         font = ImageFont.load_default()
-        with canvas(display) as draw:
+        with canvas(device) as draw:
             for i, line in enumerate(lines):
-                draw.text((0, i * 13), line, font=font, fill="white")
+                txt = str(line).encode("ascii", errors="replace").decode("ascii")
+                draw.text((0, i * 13), txt, font=font, fill="white")
     except Exception as e:
-        log.error(f"OLED draw: {e}")
+        log.error("OLED draw: %s", e)
 
 
-def update_all(state: dict):
-    """
-    Оновлює всі підключені OLED.
-    OLED #0 — вологість ґрунту + насос
-    OLED #1 — температура + UV
-    OLED #2 — резервний / статус системи
-    """
+def update_all(state):
     if not OLED_OK or not _displays:
         return
-
-    pump_str = "PUMP: ON  💧" if state["pump"] else "PUMP: off"
-    uv_str   = "UV:   ON  💜" if state["uv"]   else "UV:   off"
-    now_str  = datetime.now().strftime("%H:%M")
-
     screens = [
-        # OLED #0 — ґрунт + насос
         [
             "SmartGrow Mini",
-            f"G1:  {state['soil1']:>3}%",
-            f"G2:  {state['soil2']:>3}%",
-            pump_str,
-            f"Polyw: {state['last_water']}",
+            "G1: %3d%%" % state["soil1"],
+            "G2: %3d%%" % state["soil2"],
+            "PUMP: ON" if state["pump"] else "PUMP: off",
+            "Water: %s"  % state["last_water"],
         ],
-        # OLED #1 — темп + UV
         [
-            f"Temp: {state['temp']:.1f}C",
-            f"Hum:  {state['hum_air']:.0f}%",
-            uv_str,
-            now_str,
-        ],
-        # OLED #2 — системний статус
-        [
-            "SmartGrow v1.0",
-            f"Soil avg: {(state['soil1']+state['soil2'])//2}%",
-            f"Bat:  {state['battery']}%",
-            now_str,
+            "Temp: %.1fC"  % state["temp"],
+            "Hum:  %.0f%%" % state["hum_air"],
+            "UV: ON" if state["uv"] else "UV: off",
+            "Bat: %d%%" % state.get("battery", 100),
+            datetime.now().strftime("%H:%M"),
         ],
     ]
-
-    for i, display in enumerate(_displays):
+    for i, device in enumerate(_displays):
         if i < len(screens):
-            _draw(display, screens[i])
+            _draw(device, screens[i])
 
 
-def display_loop(state: dict):
-    """Нескінченний цикл оновлення дисплеїв."""
+def display_loop(state):
     init()
     while True:
-        update_all(state)
+        try:
+            update_all(state)
+        except Exception as e:
+            log.error("display_loop: %s", e)
         time.sleep(2)

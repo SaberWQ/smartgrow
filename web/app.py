@@ -1,10 +1,6 @@
-"""
-web/app.py
-Flask + SocketIO веб-дашборд
-Доступний на http://<IP_RPi>:5000 або через Nginx на порту 80
-"""
+# /home/smartgrow/web/app.py
 
-import threading, time, logging
+import threading, time, logging, socket
 from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO
 from services.database import get_latest, get_events, get_history
@@ -34,17 +30,27 @@ def api_history():
 
 
 def _push_loop():
-    """Надсилати дані клієнтам кожні 3 секунди."""
     while True:
         try:
             socketio.emit("update", get_latest())
             socketio.emit("events", get_events(limit=15))
         except Exception as e:
-            log.error(f"push_loop: {e}")
+            log.error("push: %s", e)
         time.sleep(3)
 
 
+def _port_free(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("127.0.0.1", port)) != 0
+
+
 def run_web():
+    for i in range(30):
+        if _port_free(WEB_PORT):
+            break
+        log.warning("Port %d busy, waiting... (%d/30)", WEB_PORT, i + 1)
+        time.sleep(1)
     threading.Thread(target=_push_loop, daemon=True).start()
-    log.info(f"🌐 Веб-сервер на {WEB_HOST}:{WEB_PORT}")
-    socketio.run(app, host=WEB_HOST, port=WEB_PORT, debug=False)
+    log.info("Web on %s:%d", WEB_HOST, WEB_PORT)
+    socketio.run(app, host=WEB_HOST, port=WEB_PORT,
+                 debug=False, use_reloader=False)

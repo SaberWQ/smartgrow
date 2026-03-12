@@ -1,7 +1,4 @@
-"""
-services/database.py
-SQLite: запис показань, подій, читання для веб-дашборду
-"""
+# /home/smartgrow/services/database.py
 
 import sqlite3, logging, time
 from config import DB_PATH, DB_LOG_INTERVAL
@@ -10,7 +7,6 @@ log = logging.getLogger("database")
 
 
 def init_db():
-    """Створити таблиці якщо не існують."""
     try:
         con = sqlite3.connect(DB_PATH)
         con.execute("""
@@ -36,44 +32,41 @@ def init_db():
             "CREATE INDEX IF NOT EXISTS idx_ts ON sensor_data(timestamp)")
         con.commit()
         con.close()
-        log.info("SQLite DB ✓")
+        log.info("DB OK: %s", DB_PATH)
     except Exception as e:
-        log.error(f"init_db: {e}")
+        log.error("init_db: %s", e)
 
 
-def insert_reading(state: dict):
-    """Записати поточні показання датчиків."""
+def insert_reading(state):
     try:
         con = sqlite3.connect(DB_PATH)
         con.execute(
             "INSERT INTO sensor_data(soil1,soil2,temp,hum_air,pump,uv,battery) "
             "VALUES(?,?,?,?,?,?,?)",
-            (state["soil1"], state["soil2"], state["temp"], state["hum_air"],
-             int(state["pump"]), int(state["uv"]), state.get("battery", 100))
-        )
+            (state["soil1"], state["soil2"],
+             state["temp"],  state["hum_air"],
+             int(state["pump"]), int(state["uv"]),
+             state.get("battery", 100)))
         con.commit()
         con.close()
     except Exception as e:
-        log.error(f"insert_reading: {e}")
+        log.error("insert_reading: %s", e)
 
 
-def insert_event(event_type: str, message: str):
-    """Записати подію (полив, UV, алерт)."""
+def insert_event(event_type, message):
     try:
         con = sqlite3.connect(DB_PATH)
         con.execute(
             "INSERT INTO events(event_type,message) VALUES(?,?)",
-            (event_type, message)
-        )
+            (event_type, message))
         con.commit()
         con.close()
-        log.info(f"Event [{event_type}]: {message}")
+        log.info("event [%s]: %s", event_type, message)
     except Exception as e:
-        log.error(f"insert_event: {e}")
+        log.error("insert_event: %s", e)
 
 
-def get_latest() -> dict:
-    """Останній рядок sensor_data."""
+def get_latest():
     try:
         con = sqlite3.connect(DB_PATH)
         con.row_factory = sqlite3.Row
@@ -83,30 +76,27 @@ def get_latest() -> dict:
         con.close()
         return dict(row) if row else {}
     except Exception as e:
-        log.error(f"get_latest: {e}")
+        log.error("get_latest: %s", e)
         return {}
 
 
-def get_history(minutes: int = 60) -> list[dict]:
-    """Дані за останні N хвилин (для графіку)."""
+def get_history(minutes=60):
     try:
         con = sqlite3.connect(DB_PATH)
         con.row_factory = sqlite3.Row
         rows = con.execute(
             "SELECT * FROM sensor_data "
-            "WHERE timestamp >= datetime('now', ? || ' minutes') "
-            "ORDER BY timestamp ASC",
-            (f"-{minutes}",)
+            "WHERE timestamp >= datetime('now','-%d minutes') "
+            "ORDER BY timestamp ASC" % int(minutes)
         ).fetchall()
         con.close()
         return [dict(r) for r in rows]
     except Exception as e:
-        log.error(f"get_history: {e}")
+        log.error("get_history: %s", e)
         return []
 
 
-def get_events(limit: int = 20) -> list[dict]:
-    """Останні події."""
+def get_events(limit=20):
     try:
         con = sqlite3.connect(DB_PATH)
         con.row_factory = sqlite3.Row
@@ -116,12 +106,11 @@ def get_events(limit: int = 20) -> list[dict]:
         con.close()
         return [dict(r) for r in rows]
     except Exception as e:
-        log.error(f"get_events: {e}")
+        log.error("get_events: %s", e)
         return []
 
 
-def db_loop(state: dict):
-    """Нескінченний цикл запису в БД."""
+def db_loop(state):
     init_db()
     while True:
         insert_reading(state)
