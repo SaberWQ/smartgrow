@@ -131,6 +131,50 @@ storage:
   # Data retention (days)
   retention_days: 30
 
+# PID Controller Configuration
+pid:
+  # Target soil moisture level (%)
+  target_moisture: 45
+  
+  # PID Gains
+  kp: 2.0   # Proportional gain
+  ki: 0.1   # Integral gain
+  kd: 0.5   # Derivative gain
+  
+  # Output limits (pump duration in seconds)
+  min_output: 0.0
+  max_output: 5.0
+  
+  # Deadband - don't water if error is within this range (%)
+  deadband: 3.0
+  
+  # Minimum time between watering cycles (seconds)
+  min_cycle_time: 300
+  
+  # Integral anti-windup limit
+  integral_limit: 50.0
+
+# AI Plant Analysis Configuration
+ai:
+  # Analysis backend: gemini, openai, tensorflow, mock
+  backend: "gemini"
+  
+  # Gemini API key (can also be set via GEMINI_API_KEY env var)
+  gemini_api_key: ""
+  
+  # Camera settings for plant photos
+  camera:
+    enabled: true
+    camera_index: 0
+    resolution:
+      width: 1280
+      height: 720
+  
+  # Analysis schedule
+  analysis:
+    auto_analyze: true
+    interval_hours: 6
+
 # Analytics Configuration
 analytics:
   # Rolling window for trend analysis (hours)

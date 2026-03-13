@@ -1,0 +1,58 @@
+# =================================================
+# SmartGrow Systemd Service
+# =================================================
+# Install: sudo cp smartgrow.service /etc/systemd/system/
+# Enable:  sudo systemctl enable smartgrow
+# Start:   sudo systemctl start smartgrow
+# =================================================
+
+[Unit]
+Description=SmartGrow IoT Greenhouse Controller
+Documentation=https://github.com/SaberWQ/smartgrow
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/smartgrow/raspberry-pi
+Environment="PATH=/home/pi/smartgrow/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+Environment="SMARTGROW_ENV=production"
+
+# Main entry point
+ExecStart=/home/pi/smartgrow/.venv/bin/python main.py
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Watchdog
+WatchdogSec=120
+NotifyAccess=main
+
+# Resource limits
+MemoryMax=512M
+CPUQuota=80%
+
+# Security hardening
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/pi/smartgrow/raspberry-pi/data
+ReadWritePaths=/home/pi/smartgrow/raspberry-pi/logs
+PrivateTmp=true
+NoNewPrivileges=false
+
+# GPIO access
+SupplementaryGroups=gpio i2c spi
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smartgrow
+
+[Install]
+WantedBy=multi-user.target

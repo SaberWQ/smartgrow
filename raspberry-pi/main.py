@@ -22,7 +22,7 @@ import signal
 import threading
 import schedule
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 # Import SmartGrow modules
@@ -31,6 +31,9 @@ from actuators import WaterPumpController, UVLightController
 from displays import OLEDDisplay, IPSDisplay
 from analytics import DataAnalyzer
 from api import SmartGrowAPI
+from pid import PIDController, PIDConfig
+from ai import PlantAnalyzer, AnalysisBackend
+from database import get_database
 
 
 class GreenhouseController:
@@ -64,6 +67,9 @@ class GreenhouseController:
         self._init_actuators()
         self._init_displays()
         self._init_analytics()
+        self._init_pid()
+        self._init_ai()
+        self._init_database()
         
         # State
         self._running = False
@@ -215,6 +221,53 @@ class GreenhouseController:
             database_path=self.config['storage']['database_path']
         )
         print("  - Data analyzer: OK")
+    
+    def _init_pid(self):
+        """Initialize PID controller for irrigation."""
+        print("[INIT] Initializing PID controller...")
+        
+        try:
+            pid_config = PIDConfig(
+                target_moisture=self.config['pid']['target_moisture'],
+                kp=self.config['pid']['kp'],
+                ki=self.config['pid']['ki'],
+                kd=self.config['pid']['kd'],
+                min_output=self.config['pid']['min_output'],
+                max_output=self.config['pid']['max_output'],
+                deadband=self.config['pid']['deadband'],
+                min_cycle_time=self.config['pid']['min_cycle_time']
+            )
+            self.pid_controller = PIDController(config=pid_config)
+            print("  - PID controller: OK")
+        except Exception as e:
+            print(f"  - PID controller: FAILED ({e})")
+            self.pid_controller = None
+    
+    def _init_ai(self):
+        """Initialize AI plant analyzer."""
+        print("[INIT] Initializing AI analyzer...")
+        
+        try:
+            api_key = os.getenv('GEMINI_API_KEY', self.config.get('ai', {}).get('gemini_api_key'))
+            self.plant_ai = PlantAnalyzer(
+                backend=AnalysisBackend.GEMINI,
+                api_key=api_key
+            )
+            print("  - AI plant analyzer: OK")
+        except Exception as e:
+            print(f"  - AI plant analyzer: FAILED ({e})")
+            self.plant_ai = None
+    
+    def _init_database(self):
+        """Initialize SQLite database."""
+        print("[INIT] Initializing database...")
+        
+        try:
+            self.database = get_database(self.config['storage']['database_path'])
+            print("  - SQLite database: OK")
+        except Exception as e:
+            print(f"  - SQLite database: FAILED ({e})")
+            self.database = None
     
     def get_all_sensor_data(self) -> Dict:
         """

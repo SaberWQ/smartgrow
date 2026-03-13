@@ -23,6 +23,7 @@ import AIAssistant from './components/AIAssistant';
 import GamePanel from './components/GamePanel';
 import SystemLogs from './components/SystemLogs';
 import SensorChart from './components/SensorChart';
+import Plant3D from './components/Plant3D';
 
 // Services & Data
 import {
@@ -443,6 +444,20 @@ export default function App() {
 
           {/* Right Column - Plant & Game */}
           <div className="lg:col-span-4 space-y-6">
+            {/* 3D Plant Visualization */}
+            <section className="card-glass p-1">
+              <div className="relative h-[300px] rounded-xl overflow-hidden">
+                <Plant3D
+                  growthStage={plant.growthStage as 'seed' | 'sprout' | 'seedling' | 'vegetative' | 'flowering' | 'mature'}
+                  moisture={sensors.soilMoisture}
+                  temperature={sensors.temperature}
+                  health={plant.health}
+                  isWatering={isWatering}
+                  lightOn={controls.uvLightActive}
+                />
+              </div>
+            </section>
+            
             <PlantStatus plant={plant} />
             <GamePanel
               profile={profile}
