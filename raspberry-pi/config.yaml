@@ -1,0 +1,147 @@
+# SmartGrow Raspberry Pi Configuration
+# Infomatrix Ukraine 2026
+
+hardware:
+  # Raspberry Pi 4 Model B - 2GB RAM, 128GB Storage
+  model: "Raspberry Pi 4 Model B"
+  ram_gb: 2
+  storage_gb: 128
+
+# GPIO Pin Configuration
+gpio:
+  # Water Pump - connected via relay
+  pump_relay_pin: 17
+  
+  # UV LED Strip - connected via relay (needs 12V converter)
+  uv_led_relay_pin: 27
+  
+  # DHT22 Temperature & Humidity Sensor
+  dht_sensor_pin: 4
+  
+  # I2C Bus for ADC, OLED displays
+  i2c_sda_pin: 2
+  i2c_scl_pin: 3
+
+# ADC Configuration (ADS1115 - 16-bit ADC)
+adc:
+  # I2C address for ADS1115
+  address: 0x48
+  # Soil Moisture Sensor channel
+  soil_moisture_channel: 0
+  # Water Tank Level channel  
+  water_tank_channel: 1
+  # Gain setting (GAIN_1 = +/-4.096V)
+  gain: 1
+  # Calibration values
+  soil_dry_value: 26000  # ADC value when soil is dry
+  soil_wet_value: 12000  # ADC value when soil is wet
+  tank_empty_value: 25000
+  tank_full_value: 10000
+
+# Display Configuration
+displays:
+  # OLED SSD1306 - Main status display
+  oled_main:
+    type: "SSD1306"
+    width: 128
+    height: 64
+    i2c_address: 0x3C
+    rotation: 0
+  
+  # OLED SSD1306 - Sensor display
+  oled_sensors:
+    type: "SSD1306"
+    width: 128
+    height: 32
+    i2c_address: 0x3D
+    rotation: 0
+  
+  # IPS ST7789 - Game display (SPI)
+  ips_game:
+    type: "ST7789"
+    width: 240
+    height: 240
+    spi_port: 0
+    spi_cs: 0
+    dc_pin: 25
+    rst_pin: 24
+    backlight_pin: 23
+
+# Sensor Thresholds
+thresholds:
+  # Soil moisture percentage for auto-watering
+  moisture_low: 35
+  moisture_optimal_min: 45
+  moisture_optimal_max: 65
+  moisture_high: 80
+  
+  # Temperature thresholds (Celsius)
+  temperature_low: 15
+  temperature_optimal_min: 20
+  temperature_optimal_max: 28
+  temperature_high: 35
+  
+  # Humidity thresholds (%)
+  humidity_low: 40
+  humidity_optimal_min: 50
+  humidity_optimal_max: 70
+  humidity_high: 85
+
+# Automation Settings
+automation:
+  # Auto-watering configuration
+  watering:
+    enabled: true
+    duration_seconds: 5
+    cooldown_minutes: 30
+    min_moisture_trigger: 35
+  
+  # Lighting schedule (24-hour format)
+  lighting:
+    enabled: true
+    on_hour: 7
+    off_hour: 22
+    
+  # Sensor polling interval (seconds)
+  sensor_poll_interval: 10
+  
+  # Data logging interval (seconds)
+  data_log_interval: 60
+
+# API Configuration
+api:
+  # Local Flask server
+  host: "0.0.0.0"
+  port: 5000
+  
+  # Web app endpoint (for sending data)
+  web_app_url: "http://localhost:3000/api"
+  
+  # WebSocket for real-time updates
+  websocket_enabled: true
+
+# Data Storage
+storage:
+  # SQLite database for local storage
+  database_path: "./data/smartgrow.db"
+  
+  # CSV export path
+  csv_export_path: "./data/exports/"
+  
+  # Data retention (days)
+  retention_days: 30
+
+# Analytics Configuration
+analytics:
+  # Rolling window for trend analysis (hours)
+  trend_window_hours: 24
+  
+  # Prediction model settings
+  prediction:
+    enabled: true
+    forecast_hours: 6
+    
+  # Anomaly detection
+  anomaly_detection:
+    enabled: true
+    std_threshold: 2.5

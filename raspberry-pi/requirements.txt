@@ -1,0 +1,29 @@
+# SmartGrow Raspberry Pi Dependencies
+# Hardware interfaces
+RPi.GPIO==0.7.1
+gpiozero==2.0
+adafruit-circuitpython-ads1x15==2.2.23
+adafruit-circuitpython-dht==4.0.4
+adafruit-circuitpython-ssd1306==2.12.14
+adafruit-circuitpython-rgb-display==3.12.0
+pillow==10.2.0
+board==1.0
+busio==1.1.1
+
+# Data processing & analytics
+numpy==1.26.4
+pandas==2.2.0
+scipy==1.12.0
+matplotlib==3.8.2
+
+# API & networking
+requests==2.31.0
+websockets==12.0
+flask==3.0.2
+flask-cors==4.0.0
+flask-socketio==5.3.6
+
+# Utilities
+python-dotenv==1.0.1
+schedule==1.2.1
+pyyaml==6.0.1

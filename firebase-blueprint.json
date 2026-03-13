@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A player in the LifeHack game.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user." },
+        "displayName": { "type": "string", "description": "The display name of the user." },
+        "email": { "type": "string", "description": "The email of the user." },
+        "photoURL": { "type": "string", "description": "The photo URL of the user." },
+        "level": { "type": "integer", "description": "The current level of the user." },
+        "gold": { "type": "integer", "description": "The total gold earned by the user." },
+        "xp": { "type": "integer", "description": "The total experience points earned by the user." }
+      },
+      "required": ["uid", "displayName", "email", "level", "gold", "xp"]
+    },
+    "Quest": {
+      "title": "Quest",
+      "description": "A task transformed into a fantasy quest.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the quest." },
+        "uid": { "type": "string", "description": "The ID of the user who owns this quest." },
+        "title": { "type": "string", "description": "The fantasy title of the quest." },
+        "description": { "type": "string", "description": "The lore/description of the quest." },
+        "originalTask": { "type": "string", "description": "The original real-life task." },
+        "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Hard", "Epic"], "description": "The difficulty level." },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"], "description": "The current status of the quest." },
+        "rewardGold": { "type": "integer", "description": "Gold reward for completion." },
+        "rewardXp": { "type": "integer", "description": "XP reward for completion." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the quest was created." },
+        "verifiedAt": { "type": "string", "format": "date-time", "description": "When the quest was verified." },
+        "verificationImage": { "type": "string", "description": "Base64 or URL of the verification image." },
+        "aiFeedback": { "type": "string", "description": "Feedback from the AI Game Master." }
+      },
+      "required": ["uid", "title", "description", "originalTask", "difficulty", "status", "rewardGold", "rewardXp", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data."
+    },
+    "/quests/{questId}": {
+      "schema": "Quest",
+      "description": "Quests generated for users."
+    }
+  }
+}

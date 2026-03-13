@@ -1,0 +1,7 @@
+{
+  "name": "LifeHack: AI Game Master",
+  "description": "Gamify your real-life chores with an AI Game Master that turns tasks into epic fantasy quests and verifies completion via vision.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

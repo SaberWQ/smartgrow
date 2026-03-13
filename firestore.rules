@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - displayName: string (required)
+    //   - email: string (required)
+    //   - photoURL: string (optional)
+    //   - level: number (required)
+    //   - gold: number (required)
+    //   - xp: number (required)
+    //
+    // Collection: quests
+    // Document ID: {questId}
+    // Fields:
+    //   - id: string (required)
+    //   - uid: string (required)
+    //   - title: string (required)
+    //   - description: string (required)
+    //   - originalTask: string (required)
+    //   - difficulty: string (required, enum)
+    //   - status: string (required, enum)
+    //   - rewardGold: number (required)
+    //   - rewardXp: number (required)
+    //   - createdAt: string (required, ISO8601)
+    //   - verifiedAt: string (optional, ISO8601)
+    //   - verificationImage: string (optional)
+    //   - aiFeedback: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "koshgit@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'level', 'gold', 'xp']) &&
+             data.uid is string &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
+             data.email is string &&
+             data.level is number && data.level >= 1 &&
+             data.gold is number && data.gold >= 0 &&
+             data.xp is number && data.xp >= 0;
+    }
+
+    function isValidQuest(data) {
+      return data.keys().hasAll(['uid', 'title', 'description', 'originalTask', 'difficulty', 'status', 'rewardGold', 'rewardXp', 'createdAt']) &&
+             data.uid is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.description is string && data.description.size() > 0 && data.description.size() < 2000 &&
+             data.originalTask is string && data.originalTask.size() > 0 && data.originalTask.size() < 500 &&
+             data.difficulty in ['Easy', 'Medium', 'Hard', 'Epic'] &&
+             data.status in ['pending', 'completed', 'failed'] &&
+             data.rewardGold is number && data.rewardGold >= 0 &&
+             data.rewardXp is number && data.rewardXp >= 0 &&
+             data.createdAt is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && 
+                       request.resource.data.uid == resource.data.uid &&
+                       request.resource.data.email == resource.data.email) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /quests/{questId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.uid || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.uid && isValidQuest(request.resource.data);
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.uid || isAdmin()) && isValidQuest(request.resource.data);
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.uid || isAdmin());
+    }
+  }
+}
