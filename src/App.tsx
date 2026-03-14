@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
-  Server
+  Server,
+  Gamepad2,
+  Bot
 } from 'lucide-react';
 
 // Components
@@ -24,6 +26,7 @@ import GamePanel from './components/GamePanel';
 import SystemLogs from './components/SystemLogs';
 import SensorChart from './components/SensorChart';
 import Plant3D from './components/Plant3D';
+import PlantPetChat from './components/PlantPetChat';
 
 // Services & Data
 import {
@@ -33,6 +36,8 @@ import {
   getDefaultRecommendations,
   ALL_ACHIEVEMENTS
 } from './services/mockData';
+
+import { getPlantMood } from './services/plantPetAI';
 
 // Raspberry Pi API
 import * as PiAPI from './services/raspberryPiApi';
@@ -46,7 +51,9 @@ import type {
   AIRecommendation,
   DailyTask,
   Achievement,
-  SystemLog
+  SystemLog,
+  PlantMood,
+  PlantQuest
 } from './types';
 
 // Default states
@@ -68,7 +75,13 @@ const defaultPlant: PlantProfile = {
   health: 85,
   growthStage: 'seedling',
   growthProgress: 35,
-  totalWaterings: 12
+  totalWaterings: 12,
+  mood: 'happy',
+  personality: {
+    friendliness: 80,
+    curiosity: 70,
+    dramaticLevel: 60
+  }
 };
 
 const defaultProfile: UserProfile = {
@@ -121,8 +134,8 @@ const defaultTasks: DailyTask[] = [
   {
     id: 'task-4',
     uid: 'demo-user',
-    title: 'AI Consultation',
-    description: 'Ask SmartGrow AI for plant care tips',
+    title: 'Talk to Flora',
+    description: 'Have a chat with your plant friend',
     type: 'ai_consultation',
     rewardXp: 20,
     rewardGold: 10,
@@ -151,11 +164,19 @@ export default function App() {
   const [isWatering, setIsWatering] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [plantMood, setPlantMood] = useState<PlantMood>('happy');
   
   // Raspberry Pi connection mode
   const [usePiConnection, setUsePiConnection] = useState(false);
   const [piConnected, setPiConnected] = useState(false);
   const wsCleanup = useRef<(() => void) | null>(null);
+
+  // Update plant mood based on sensors
+  useEffect(() => {
+    const mood = getPlantMood(sensors, plant.health);
+    setPlantMood(mood);
+    setPlant(prev => ({ ...prev, mood }));
+  }, [sensors, plant.health]);
 
   // Simulate real-time sensor updates
   useEffect(() => {
@@ -262,6 +283,29 @@ export default function App() {
     setRecommendations(prev => prev.filter(r => r.action !== action));
   };
 
+  // Handle voice/chat commands
+  const handlePlantAction = (action: string) => {
+    switch (action) {
+      case 'water':
+        triggerWatering();
+        break;
+      case 'light_on':
+        setControls(prev => ({ ...prev, uvLightActive: true }));
+        addLog('UV light activated by voice', 'success', 'voice');
+        break;
+      case 'light_off':
+        setControls(prev => ({ ...prev, uvLightActive: false }));
+        addLog('UV light deactivated by voice', 'info', 'voice');
+        break;
+      case 'health_check':
+        addLog(`Plant health: ${plant.health}%, Mood: ${plantMood}`, 'info', 'ai');
+        break;
+      case 'show_sensors':
+        addLog(`Moisture: ${sensors.soilMoisture}%, Temp: ${sensors.temperature}°C`, 'info', 'sensor');
+        break;
+    }
+  };
+
   const handleCompleteTask = (taskId: string) => {
     const task = dailyTasks.find(t => t.id === taskId);
     if (!task || task.completed) return;
@@ -301,6 +345,21 @@ export default function App() {
     }
   };
 
+  // Get mood indicator color
+  const getMoodColor = (mood: PlantMood) => {
+    const colors: Record<PlantMood, string> = {
+      happy: 'text-green-400',
+      thirsty: 'text-amber-400',
+      hot: 'text-red-400',
+      cold: 'text-blue-400',
+      sick: 'text-purple-400',
+      sleepy: 'text-indigo-400',
+      excited: 'text-yellow-400',
+      neutral: 'text-zinc-400'
+    };
+    return colors[mood];
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       {/* Header */}
@@ -314,7 +373,15 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-xl font-bold font-display tracking-tight">SmartGrow</h1>
-                <p className="text-xs text-zinc-500 font-mono">AI Greenhouse</p>
+                <p className="text-xs text-zinc-500 font-mono">Plant Pet AI</p>
+              </div>
+            </div>
+
+            {/* Plant mood indicator */}
+            <div className="hidden md:flex items-center gap-4">
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-800/50 ${getMoodColor(plantMood)}`}>
+                <Bot className="w-4 h-4" />
+                <span className="text-sm capitalize">{plant.name} is {plantMood}</span>
               </div>
             </div>
 
@@ -371,7 +438,7 @@ export default function App() {
                 <SensorCard
                   title="Temperature"
                   value={sensors.temperature}
-                  unit="°C"
+                  unit="C"
                   icon={<Thermometer className="w-5 h-5" />}
                   color="amber"
                   percentage={((sensors.temperature - 10) / 30) * 100}
@@ -414,7 +481,7 @@ export default function App() {
                   dataKey="temperature"
                   title="Temperature"
                   color="#f59e0b"
-                  unit="°C"
+                  unit="C"
                 />
               </div>
             </section>
@@ -454,6 +521,7 @@ export default function App() {
                   health={plant.health}
                   isWatering={isWatering}
                   lightOn={controls.uvLightActive}
+                  mood={plantMood}
                 />
               </div>
             </section>
@@ -469,20 +537,27 @@ export default function App() {
         </div>
       </main>
 
+      {/* Plant Pet Chat Button */}
+      <PlantPetChat
+        plant={plant}
+        sensors={sensors}
+        onAction={handlePlantAction}
+      />
+
       {/* Footer */}
       <footer className="border-t border-zinc-900 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
             <div className="flex items-center gap-2">
               <Leaf className="w-4 h-4 text-green-500" />
-              <span>SmartGrow Mini</span>
+              <span>SmartGrow Plant Pet</span>
               <span className="text-zinc-700">|</span>
               <span>Infomatrix Ukraine 2026</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="font-mono text-xs">Raspberry Pi 4</span>
+              <span className="font-mono text-xs">Raspberry Pi 4 + Local AI</span>
               <span className="text-zinc-700">|</span>
-              <span className="font-mono text-xs">v1.0.0</span>
+              <span className="font-mono text-xs">v2.0.0</span>
             </div>
           </div>
         </div>

@@ -115,6 +115,38 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
     icon: '🤖',
     rewardXp: 300,
     rewardGold: 150
+  },
+  {
+    id: 'first_conversation',
+    name: 'First Chat',
+    description: 'Have your first conversation with your plant',
+    icon: '💬',
+    rewardXp: 50,
+    rewardGold: 25
+  },
+  {
+    id: 'plant_friend',
+    name: 'Plant Friend',
+    description: 'Chat with your plant 50 times',
+    icon: '🤝',
+    rewardXp: 200,
+    rewardGold: 100
+  },
+  {
+    id: 'sun_master',
+    name: 'Sun Master',
+    description: 'Keep optimal UV light schedule for 7 days',
+    icon: '🌞',
+    rewardXp: 175,
+    rewardGold: 85
+  },
+  {
+    id: 'plant_doctor',
+    name: 'Plant Doctor',
+    description: 'Heal your plant from sick to healthy',
+    icon: '🏥',
+    rewardXp: 250,
+    rewardGold: 125
   }
 ];
 

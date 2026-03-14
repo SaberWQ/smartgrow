@@ -1,22 +1,23 @@
 /**
- * SmartGrow 3D Plant Visualization
- * ================================
+ * SmartGrow 3D Plant Pet Visualization
+ * =====================================
  * 
- * Interactive 3D plant that grows based on real sensor data.
- * Uses React Three Fiber for rendering.
+ * Interactive 3D plant with emotional states.
+ * The plant reacts to sensor data and user interactions.
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { 
   OrbitControls, 
   Environment,
   Float,
   MeshWobbleMaterial,
-  Text3D,
-  Center
+  Html
 } from '@react-three/drei';
 import * as THREE from 'three';
+
+import type { PlantMood } from '../types';
 
 // Plant growth stages
 type GrowthStage = 'seed' | 'sprout' | 'seedling' | 'vegetative' | 'flowering' | 'mature';
@@ -28,6 +29,8 @@ interface Plant3DProps {
   health: number;
   isWatering: boolean;
   lightOn: boolean;
+  mood?: PlantMood;
+  onClick?: () => void;
 }
 
 // Growth stage to scale mapping
@@ -40,14 +43,124 @@ const STAGE_SCALES: Record<GrowthStage, number> = {
   mature: 1.0
 };
 
-// Leaf component
+// Mood colors for ambient light
+const MOOD_AMBIENT: Record<PlantMood, string> = {
+  happy: '#90EE90',
+  thirsty: '#FFA500',
+  hot: '#FF6B6B',
+  cold: '#87CEEB',
+  sick: '#DDA0DD',
+  sleepy: '#9370DB',
+  excited: '#FFD700',
+  neutral: '#98FB98'
+};
+
+// Face expressions component
+function PlantFace({ 
+  mood, 
+  position 
+}: { 
+  mood: PlantMood;
+  position: [number, number, number];
+}) {
+  const faceRef = useRef<THREE.Group>(null);
+  const [blink, setBlink] = useState(false);
+  
+  // Blinking animation
+  useFrame((state) => {
+    if (faceRef.current) {
+      // Subtle bobbing
+      faceRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 2) * 0.02;
+      
+      // Occasional blink
+      if (Math.random() < 0.005) {
+        setBlink(true);
+        setTimeout(() => setBlink(false), 150);
+      }
+    }
+  });
+  
+  const eyeHeight = blink ? 0.01 : 0.03;
+  const mouthCurve = mood === 'happy' || mood === 'excited' ? 0.03 : 
+                     mood === 'thirsty' || mood === 'sick' ? -0.02 : 0;
+  
+  // Eye style based on mood
+  const getEyeStyle = () => {
+    switch (mood) {
+      case 'sleepy':
+        return { scaleY: 0.3 };
+      case 'excited':
+        return { scaleY: 1.2 };
+      case 'thirsty':
+        return { scaleY: 0.7 };
+      default:
+        return { scaleY: 1 };
+    }
+  };
+  
+  const eyeStyle = getEyeStyle();
+  
+  return (
+    <group ref={faceRef} position={position}>
+      {/* Left eye */}
+      <mesh position={[-0.08, 0, 0.15]} scale={[1, eyeStyle.scaleY, 1]}>
+        <sphereGeometry args={[0.02, 8, 8]} />
+        <meshBasicMaterial color="#1a1a2e" />
+      </mesh>
+      
+      {/* Right eye */}
+      <mesh position={[0.08, 0, 0.15]} scale={[1, eyeStyle.scaleY, 1]}>
+        <sphereGeometry args={[0.02, 8, 8]} />
+        <meshBasicMaterial color="#1a1a2e" />
+      </mesh>
+      
+      {/* Mouth */}
+      <mesh position={[0, -0.06, 0.14]} rotation={[0, 0, 0]}>
+        <torusGeometry args={[0.04, 0.01, 8, 16, Math.PI]} />
+        <meshBasicMaterial color="#1a1a2e" />
+      </mesh>
+      
+      {/* Blush for happy/excited */}
+      {(mood === 'happy' || mood === 'excited') && (
+        <>
+          <mesh position={[-0.12, -0.02, 0.12]}>
+            <circleGeometry args={[0.025, 16]} />
+            <meshBasicMaterial color="#FFB6C1" transparent opacity={0.5} />
+          </mesh>
+          <mesh position={[0.12, -0.02, 0.12]}>
+            <circleGeometry args={[0.025, 16]} />
+            <meshBasicMaterial color="#FFB6C1" transparent opacity={0.5} />
+          </mesh>
+        </>
+      )}
+      
+      {/* Sweat drop for hot/thirsty */}
+      {(mood === 'hot' || mood === 'thirsty') && (
+        <mesh position={[0.15, 0.05, 0.1]}>
+          <sphereGeometry args={[0.015, 8, 8]} />
+          <meshBasicMaterial color="#87CEEB" transparent opacity={0.8} />
+        </mesh>
+      )}
+      
+      {/* ZZZ for sleepy */}
+      {mood === 'sleepy' && (
+        <Html position={[0.2, 0.1, 0]} style={{ pointerEvents: 'none' }}>
+          <div className="text-indigo-400 font-bold text-lg animate-pulse">zzZ</div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+// Leaf component with droop based on moisture
 function Leaf({ 
   position, 
   rotation, 
   scale, 
   health, 
   moisture,
-  index 
+  index,
+  mood
 }: { 
   position: [number, number, number];
   rotation: [number, number, number];
@@ -55,6 +168,7 @@ function Leaf({
   health: number;
   moisture: number;
   index: number;
+  mood: PlantMood;
 }) {
   const leafRef = useRef<THREE.Mesh>(null);
   
@@ -80,8 +194,9 @@ function Leaf({
   
   useFrame((state) => {
     if (leafRef.current) {
-      // Gentle swaying animation
-      leafRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + index) * 0.1;
+      // Gentle swaying animation - more active when excited
+      const swayIntensity = mood === 'excited' ? 0.2 : mood === 'sleepy' ? 0.02 : 0.1;
+      leafRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + index) * swayIntensity;
       leafRef.current.rotation.x = rotation[0] + droopAngle + Math.sin(state.clock.elapsedTime * 0.3 + index) * 0.05;
     }
   });
@@ -96,8 +211,8 @@ function Leaf({
       <sphereGeometry args={[0.15, 8, 4]} />
       <MeshWobbleMaterial 
         color={leafColor}
-        factor={0.2}
-        speed={1}
+        factor={mood === 'excited' ? 0.4 : 0.2}
+        speed={mood === 'sleepy' ? 0.5 : 1}
         roughness={0.8}
         metalness={0.1}
       />
@@ -143,16 +258,19 @@ function Stem({
 // Flower component (for flowering/mature stages)
 function Flower({ 
   position, 
-  scale 
+  scale,
+  mood
 }: { 
   position: [number, number, number];
   scale: number;
+  mood: PlantMood;
 }) {
   const flowerRef = useRef<THREE.Group>(null);
   
   useFrame((state) => {
     if (flowerRef.current) {
-      flowerRef.current.rotation.y = state.clock.elapsedTime * 0.3;
+      const speed = mood === 'excited' ? 0.6 : mood === 'sleepy' ? 0.1 : 0.3;
+      flowerRef.current.rotation.y = state.clock.elapsedTime * speed;
     }
   });
   
@@ -239,33 +357,34 @@ function WaterDroplets({ active }: { active: boolean }) {
   }, []);
   
   useFrame(() => {
-    if (dropletsRef.current && active) {
-      const positions = dropletsRef.current.geometry.attributes.position.array as Float32Array;
-      
-      for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] -= 0.05; // Fall down
+    if (dropletsRef.current && active && dropletsRef.current.geometry) {
+      const posAttr = dropletsRef.current.geometry.attributes.position;
+      if (posAttr) {
+        const positions = posAttr.array as Float32Array;
         
-        if (positions[i + 1] < -0.2) {
-          positions[i + 1] = 1.5; // Reset to top
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i + 1] -= 0.05; // Fall down
+          
+          if (positions[i + 1] < -0.2) {
+            positions[i + 1] = 1.5; // Reset to top
+          }
         }
+        
+        posAttr.needsUpdate = true;
       }
-      
-      dropletsRef.current.geometry.attributes.position.needsUpdate = true;
     }
   });
   
   if (!active) return null;
   
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(particles, 3));
+    return geo;
+  }, [particles]);
+  
   return (
-    <points ref={dropletsRef}>
-      <bufferGeometry>
-        <bufferAttribute 
-          attach="attributes-position"
-          count={particles.length / 3}
-          array={particles}
-          itemSize={3}
-        />
-      </bufferGeometry>
+    <points ref={dropletsRef} geometry={geometry}>
       <pointsMaterial 
         size={0.02}
         color="#00bfff"
@@ -314,23 +433,27 @@ function UVLight({ active }: { active: boolean }) {
 }
 
 // Seed stage
-function SeedPlant() {
+function SeedPlant({ mood }: { mood: PlantMood }) {
   return (
-    <mesh position={[0, 0.05, 0]}>
-      <sphereGeometry args={[0.08, 16, 16]} />
-      <meshStandardMaterial 
-        color="#8b4513"
-        roughness={0.8}
-      />
-    </mesh>
+    <group>
+      <mesh position={[0, 0.05, 0]}>
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshStandardMaterial 
+          color="#8b4513"
+          roughness={0.8}
+        />
+      </mesh>
+      <PlantFace mood={mood} position={[0, 0.08, 0]} />
+    </group>
   );
 }
 
 // Sprout stage
-function SproutPlant({ health }: { health: number }) {
+function SproutPlant({ health, mood }: { health: number; mood: PlantMood }) {
   return (
     <group>
       <Stem height={0.15} health={health} />
+      <PlantFace mood={mood} position={[0, 0.18, 0]} />
       <Leaf 
         position={[0.05, 0.15, 0]} 
         rotation={[0.3, 0, 0.5]} 
@@ -338,6 +461,7 @@ function SproutPlant({ health }: { health: number }) {
         health={health}
         moisture={50}
         index={0}
+        mood={mood}
       />
       <Leaf 
         position={[-0.05, 0.12, 0]} 
@@ -346,6 +470,7 @@ function SproutPlant({ health }: { health: number }) {
         health={health}
         moisture={50}
         index={1}
+        mood={mood}
       />
     </group>
   );
@@ -355,11 +480,13 @@ function SproutPlant({ health }: { health: number }) {
 function FullPlant({ 
   stage, 
   health, 
-  moisture 
+  moisture,
+  mood
 }: { 
   stage: GrowthStage;
   health: number;
   moisture: number;
+  mood: PlantMood;
 }) {
   const scale = STAGE_SCALES[stage];
   const showFlowers = stage === 'flowering' || stage === 'mature';
@@ -399,6 +526,7 @@ function FullPlant({
         health={health}
         moisture={moisture}
         index={i}
+        mood={mood}
       />
     );
   }
@@ -406,19 +534,29 @@ function FullPlant({
   return (
     <group scale={scale}>
       <Stem height={height} health={health} />
+      <PlantFace mood={mood} position={[0, height * 0.7, 0]} />
       {leaves}
       {showFlowers && (
         <>
-          <Flower position={[0, height + 0.1, 0]} scale={stage === 'mature' ? 1.2 : 0.8} />
+          <Flower position={[0, height + 0.1, 0]} scale={stage === 'mature' ? 1.2 : 0.8} mood={mood} />
           {stage === 'mature' && (
             <>
-              <Flower position={[0.15, height - 0.1, 0.1]} scale={0.6} />
-              <Flower position={[-0.12, height - 0.15, -0.1]} scale={0.5} />
+              <Flower position={[0.15, height - 0.1, 0.1]} scale={0.6} mood={mood} />
+              <Flower position={[-0.12, height - 0.15, -0.1]} scale={0.5} mood={mood} />
             </>
           )}
         </>
       )}
     </group>
+  );
+}
+
+// Click indicator
+function ClickIndicator() {
+  return (
+    <Html center position={[0, -0.6, 0]} style={{ pointerEvents: 'none' }}>
+      <div className="text-xs text-zinc-500 animate-pulse">Click to chat</div>
+    </Html>
   );
 }
 
@@ -429,12 +567,21 @@ function PlantScene({
   temperature, 
   health,
   isWatering,
-  lightOn
+  lightOn,
+  mood = 'neutral',
+  onClick
 }: Plant3DProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  
+  // Bounce on click
+  const handleClick = () => {
+    if (onClick) onClick();
+  };
+  
   return (
     <>
       {/* Lighting */}
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.4} color={MOOD_AMBIENT[mood]} />
       <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
       <pointLight position={[-3, 2, -3]} intensity={0.3} color="#90ee90" />
       
@@ -446,11 +593,11 @@ function PlantScene({
       
       {/* Plant based on growth stage */}
       <Float speed={1} rotationIntensity={0.1} floatIntensity={0.1}>
-        <group position={[0, 0.1, 0]}>
-          {growthStage === 'seed' && <SeedPlant />}
-          {growthStage === 'sprout' && <SproutPlant health={health} />}
+        <group ref={groupRef} position={[0, 0.1, 0]} onClick={handleClick}>
+          {growthStage === 'seed' && <SeedPlant mood={mood} />}
+          {growthStage === 'sprout' && <SproutPlant health={health} mood={mood} />}
           {['seedling', 'vegetative', 'flowering', 'mature'].includes(growthStage) && (
-            <FullPlant stage={growthStage} health={health} moisture={moisture} />
+            <FullPlant stage={growthStage} health={health} moisture={moisture} mood={mood} />
           )}
         </group>
       </Float>
@@ -460,6 +607,9 @@ function PlantScene({
       
       {/* Water droplets */}
       <WaterDroplets active={isWatering} />
+      
+      {/* Click indicator */}
+      {onClick && <ClickIndicator />}
       
       {/* Controls */}
       <OrbitControls 
@@ -476,20 +626,30 @@ function PlantScene({
 
 // Main component export
 export default function Plant3D(props: Plant3DProps) {
+  // Derive mood from sensor data if not provided
+  const derivedMood = props.mood || (
+    props.moisture < 30 ? 'thirsty' :
+    props.temperature > 35 ? 'hot' :
+    props.temperature < 10 ? 'cold' :
+    props.health < 40 ? 'sick' :
+    props.health > 80 ? 'happy' : 'neutral'
+  );
+  
   return (
-    <div className="w-full h-full min-h-[300px] rounded-xl overflow-hidden bg-gradient-to-b from-zinc-900 to-zinc-950">
+    <div className="w-full h-full min-h-[300px] rounded-xl overflow-hidden bg-gradient-to-b from-zinc-900 to-zinc-950 cursor-pointer">
       <Canvas
         shadows
         camera={{ position: [2, 1.5, 2], fov: 50 }}
         gl={{ antialias: true }}
       >
-        <PlantScene {...props} />
+        <PlantScene {...props} mood={derivedMood} />
       </Canvas>
       
       {/* Status overlay */}
       <div className="absolute bottom-4 left-4 right-4 flex justify-between text-xs text-zinc-400">
-        <span>Stage: {props.growthStage}</span>
-        <span>Health: {props.health}%</span>
+        <span className="capitalize">{derivedMood}</span>
+        <span>{props.growthStage}</span>
+        <span>HP: {props.health}%</span>
       </div>
     </div>
   );

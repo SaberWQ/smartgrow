@@ -47,6 +47,41 @@ export interface PlantProfile {
   totalWaterings: number;
   lastWateredAt?: string;
   imageUrl?: string;
+  // Plant Pet personality
+  mood: PlantMood;
+  personality: PlantPersonality;
+}
+
+// Plant Pet System
+export type PlantMood = 'happy' | 'thirsty' | 'hot' | 'cold' | 'sick' | 'sleepy' | 'excited' | 'neutral';
+
+export interface PlantPersonality {
+  friendliness: number;       // 0-100
+  curiosity: number;          // 0-100
+  dramaticLevel: number;      // 0-100 (how dramatic when thirsty)
+}
+
+export interface PlantPetMessage {
+  id: string;
+  role: 'plant' | 'user';
+  content: string;
+  timestamp: string;
+  mood?: PlantMood;
+  isVoice?: boolean;
+}
+
+export interface PlantQuest {
+  id: string;
+  title: string;
+  description: string;
+  type: 'water' | 'check_sensors' | 'adjust_light' | 'photo' | 'talk' | 'play';
+  rewardXp: number;
+  rewardGold: number;
+  completed: boolean;
+  givenBy: string;            // Plant name
+  expiresAt: string;
+  createdAt: string;
+  completedAt?: string;
 }
 
 export type AchievementId = 
@@ -58,7 +93,11 @@ export type AchievementId =
   | 'streak_7'
   | 'streak_30'
   | 'plant_whisperer'
-  | 'automation_expert';
+  | 'automation_expert'
+  | 'first_conversation'
+  | 'plant_friend'
+  | 'sun_master'
+  | 'plant_doctor';
 
 export interface Achievement {
   id: AchievementId;
@@ -107,7 +146,7 @@ export interface SystemLog {
   type: 'info' | 'warning' | 'error' | 'success';
   message: string;
   timestamp: string;
-  source: 'sensor' | 'pump' | 'light' | 'ai' | 'system';
+  source: 'sensor' | 'pump' | 'light' | 'ai' | 'system' | 'voice';
 }
 
 export interface GameState {
@@ -117,6 +156,37 @@ export interface GameState {
   achievements: Achievement[];
   dailyTasks: DailyTask[];
   streak: number;
+}
+
+// Voice interaction
+export interface VoiceState {
+  isListening: boolean;
+  isSpeaking: boolean;
+  transcript: string;
+  error?: string;
+}
+
+// Local AI (Ollama) types
+export interface OllamaMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface OllamaResponse {
+  model: string;
+  message: OllamaMessage;
+  done: boolean;
+}
+
+// Plant Vision Analysis
+export interface PlantVisionResult {
+  healthScore: number;
+  leafColor: 'green' | 'yellow' | 'brown' | 'mixed';
+  growthStatus: 'healthy' | 'slow' | 'fast' | 'stunted';
+  diseaseDetected: boolean;
+  diseaseType?: string;
+  recommendations: string[];
+  timestamp: string;
 }
 
 export interface FirestoreErrorInfo {

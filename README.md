@@ -1,15 +1,15 @@
-# SmartGrow - AI-Powered Smart Greenhouse
+# SmartGrow - AI Plant Pet Smart Greenhouse
 
 <div align="center">
 
-![SmartGrow Logo](https://img.shields.io/badge/SmartGrow-AI%20Greenhouse-green?style=for-the-badge&logo=leaf&logoColor=white)
+![SmartGrow Logo](https://img.shields.io/badge/SmartGrow-Plant%20Pet%20AI-green?style=for-the-badge&logo=leaf&logoColor=white)
 
-**An intelligent IoT greenhouse system with gamification**
+**Your plant becomes a talking virtual pet that controls a real greenhouse**
 
 [![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi%204-C51A4A?style=flat-square&logo=raspberry-pi)](https://www.raspberrypi.org/)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python)](https://python.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://reactjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Ollama](https://img.shields.io/badge/Ollama-Local%20AI-orange?style=flat-square)](https://ollama.ai)
 
 [Demo](https://smartgrow.example.com) | [Documentation](#documentation) | [Hardware Setup](#hardware-setup) | [Installation](#installation)
 
@@ -19,15 +19,18 @@
 
 ## Overview
 
-SmartGrow is a hybrid **IoT + AI + Game** platform where a real greenhouse is controlled through a gamified web application. The system transforms plant care into an engaging game while maintaining real-world automation.
+SmartGrow is a hybrid **IoT + AI + Game** platform where your plant becomes a **talking virtual pet**. The plant has emotions, gives you quests, and controls a real greenhouse. All AI runs **100% locally** on Raspberry Pi using Ollama.
 
 ### Key Features
 
+- **Plant Pet AI**: Your plant talks, has moods, and gives you missions
+- **Voice Interaction**: Talk to your plant using VOSK + Coqui TTS
+- **Local AI Brain**: Ollama (mistral/llama3) runs entirely on Raspberry Pi
+- **3D Emotional Plant**: React Three Fiber plant with facial expressions
 - **Real-time Monitoring**: Soil moisture, temperature, humidity, water level
-- **Automated Control**: PID-based irrigation, scheduled UV lighting
-- **AI Plant Analysis**: Computer vision health assessment using Gemini Vision
-- **3D Plant Visualization**: React Three Fiber plant that grows with real data
-- **Gamification**: XP, levels, achievements, daily quests
+- **PID Auto-Watering**: Intelligent irrigation with PID controller
+- **Plant Vision**: YOLOv8 + OpenCV for disease detection
+- **Gamification**: XP, levels, achievements, daily quests from plant
 - **Remote Access**: Cloudflare Tunnel for secure internet access
 
 ---
@@ -39,9 +42,9 @@ SmartGrow is a hybrid **IoT + AI + Game** platform where a real greenhouse is co
                        │
                        ▼
               ┌─────────────────┐
-              │  SmartGrow Web  │
-              │   Application   │
-              │  (React + 3D)   │
+              │  SmartGrow Web  │◄────── 3D Plant Pet
+              │   Application   │        with emotions
+              │  (React + R3F)  │        & voice chat
               └────────┬────────┘
                        │ HTTPS
                        ▼
@@ -51,27 +54,39 @@ SmartGrow is a hybrid **IoT + AI + Game** platform where a real greenhouse is co
               └────────┬────────┘
                        │
                        ▼
-    ┌──────────────────────────────────────┐
-    │         Raspberry Pi 4               │
-    │  ┌─────────────────────────────────┐ │
-    │  │     FastAPI Server (8000)       │ │
-    │  │  ┌──────────┬──────────────┐    │ │
-    │  │  │   PID    │    SQLite    │    │ │
-    │  │  │Controller│   Database   │    │ │
-    │  │  └──────────┴──────────────┘    │ │
-    │  └─────────────────────────────────┘ │
-    │                  │                   │
-    │    ┌─────────────┼─────────────┐     │
-    │    │             │             │     │
-    │    ▼             ▼             ▼     │
-    │ ┌──────┐    ┌──────────┐   ┌──────┐  │
-    │ │Sensors│    │ Displays │   │Actuators│
-    │ │DHT22 │    │  OLED    │   │ Pump │  │
-    │ │Soil  │    │  IPS     │   │ UV   │  │
-    │ │Water │    └──────────┘   │ LED  │  │
-    │ └──────┘                   └──────┘  │
-    └──────────────────────────────────────┘
+    ┌──────────────────────────────────────────────┐
+    │              Raspberry Pi 4                  │
+    │  ┌─────────────────────────────────────────┐ │
+    │  │           FastAPI Server (8000)         │ │
+    │  │  ┌──────────┬───────────┬────────────┐  │ │
+    │  │  │   PID    │  Ollama   │   SQLite   │  │ │
+    │  │  │Controller│ AI Brain  │  Database  │  │ │
+    │  │  └──────────┴───────────┴────────────┘  │ │
+    │  │  ┌──────────┬───────────┐               │ │
+    │  │  │   VOSK   │  Coqui    │ ◄── Voice    │ │
+    │  │  │   STT    │   TTS     │    Pipeline  │ │
+    │  │  └──────────┴───────────┘               │ │
+    │  └─────────────────────────────────────────┘ │
+    │                    │                         │
+    │    ┌───────────────┼───────────────┐         │
+    │    │               │               │         │
+    │    ▼               ▼               ▼         │
+    │ ┌──────┐      ┌──────────┐    ┌──────────┐   │
+    │ │Sensors│      │ Displays │    │ Actuators│  │
+    │ │DHT22 │      │  OLED    │    │  Pump    │   │
+    │ │Soil  │      │  IPS     │    │  UV LED  │   │
+    │ │Water │      └──────────┘    │  Camera  │   │
+    │ └──────┘                      └──────────┘   │
+    └──────────────────────────────────────────────┘
 ```
+
+### Plant Pet Personality
+
+Your plant pet has:
+- **Moods**: happy, thirsty, hot, cold, sick, sleepy, excited
+- **Facial Expressions**: Eyes, mouth, blush effects in 3D
+- **Voice**: Speaks through Coqui TTS
+- **Quests**: Gives you missions for XP rewards
 
 ---
 
