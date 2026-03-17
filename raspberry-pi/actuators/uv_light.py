@@ -21,7 +21,7 @@ class UVLightController:
     
     def __init__(
         self,
-        relay_pin: int = 27,
+        relay_pin: int = 22,  # GPIO 22 for SmartGrow UV
         active_low: bool = True,
         schedule_start_hour: int = 7,
         schedule_end_hour: int = 22,
@@ -380,7 +380,7 @@ if __name__ == "__main__":
     
     try:
         light = UVLightController(
-            relay_pin=27,
+            relay_pin=22,  # GPIO 22 for SmartGrow UV
             active_low=True,
             schedule_start_hour=7,
             schedule_end_hour=22

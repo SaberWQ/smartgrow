@@ -20,7 +20,7 @@ class WaterPumpController:
     
     def __init__(
         self,
-        relay_pin: int = 17,
+        relay_pin: int = 24,  # GPIO 24 for SmartGrow
         active_low: bool = True,
         max_duration_seconds: int = 30,
         cooldown_seconds: int = 300
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     
     try:
         pump = WaterPumpController(
-            relay_pin=17,
+            relay_pin=24,  # GPIO 24 for SmartGrow
             active_low=True,
             max_duration_seconds=10,
             cooldown_seconds=30
